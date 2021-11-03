@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"os"
 
 	"github.com/lib/pq"
 )
@@ -21,6 +22,19 @@ func NewCSVImport(db *sql.DB, schema string, tableName string, columns []string)
 	_, err = table.Exec()
 	if err != nil {
 		return nil, err
+	}
+
+	if os.Getenv("ATLAS") != "" {
+
+		table, err = createIndex(db, schema, tableName, columns)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = table.Exec()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return newImport(db, schema, tableName, columns)

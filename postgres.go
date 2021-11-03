@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -107,11 +108,31 @@ func createJSONTable(db *sql.DB, schema string, tableName string, column string,
 func createTable(db *sql.DB, schema string, tableName string, columns []string) (*sql.Stmt, error) {
 	columnTypes := make([]string, len(columns))
 	for i, col := range columns {
-		columnTypes[i] = fmt.Sprintf("%s TEXT", col)
+
+		if os.Getenv("ATLAS") != "" {
+			if i == 0 {
+				columnTypes[i] = fmt.Sprintf("%s TEXT", col)
+			} else {
+				columnTypes[i] = fmt.Sprintf("%s INTEGER", col)
+			}
+		} else {
+			columnTypes[i] = fmt.Sprintf("%s TEXT", col)
+		}
+
 	}
 	columnDefinitions := strings.Join(columnTypes, ",")
 	fullyQualifiedTable := fmt.Sprintf("%s.%s", schema, tableName)
 	tableSchema := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", fullyQualifiedTable, columnDefinitions)
+
+	statement, err := db.Prepare(tableSchema)
+	return statement, err
+}
+
+func createIndex(db *sql.DB, schema string, tableName string, columns []string) (*sql.Stmt, error) {
+	fullyQualifiedTable := fmt.Sprintf("%s.%s", schema, tableName)
+	tableSchema := fmt.Sprintf("CREATE INDEX %s on %s(geography_code)", schema+"_"+tableName, fullyQualifiedTable)
+
+	fmt.Printf("%s", tableSchema)
 
 	statement, err := db.Prepare(tableSchema)
 	return statement, err
